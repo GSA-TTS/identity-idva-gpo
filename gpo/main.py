@@ -34,14 +34,13 @@ def get_db():
     finally:
         db.close()
 
+
 def write(file, letters):
     writer = csv.writer(file, delimiter="|")
     width = max(2, math.trunc(math.log(len(letters) + 1, 10) + 1))
     writer.writerow([f"{1:0{width}}", len(letters)])
     for i, val in enumerate(letters, start=2):
-        writer.writerow(
-            map(lambda x: x.replace("|", ""), val.as_list(f"{i:0{width}}"))
-        )
+        writer.writerow(map(lambda x: x.replace("|", ""), val.as_list(f"{i:0{width}}")))
 
 
 @app.post("/upload")
