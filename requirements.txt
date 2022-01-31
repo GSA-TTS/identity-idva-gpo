@@ -1,0 +1,9 @@
+aiohttp ~= 3.8
+twisted[tls, http2]
+fastapi
+uvicorn
+pydantic
+starlette-prometheus
+paramiko
+sqlalchemy
+psycopg2

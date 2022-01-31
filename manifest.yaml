@@ -1,0 +1,17 @@
+---
+applications:
+  - name: gpo
+    routes:
+      - route: identity-idva-gpo-((ENVIRONMENT)).apps.internal
+    memory: ((MEMORY))
+    instances: ((INSTANCES))
+    buildpacks:
+      - python_buildpack
+    command: uvicorn gpo.main:app --host 0.0.0.0 --port $PORT
+    services:
+      - sk-postgres
+    env:
+      GPO_USERNAME: ((GPO_USERNAME))
+      GPO_PASSWORD: ((GPO_PASSWORD))
+      GPO_HOST: ((GPO_HOST))
+      GPO_HOSTKEY: ((GPO_HOSTKEY))
