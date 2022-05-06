@@ -1,7 +1,16 @@
+"""
+REST api models for gpo µservice
+"""
 from pydantic import BaseModel
+
+# pylint: disable=too-few-public-methods
 
 
 class LetterBase(BaseModel):
+    """
+    base letter model
+    """
+
     name: str
     address: str
     address2: str
@@ -16,11 +25,21 @@ class LetterBase(BaseModel):
 
 
 class LetterCreate(LetterBase):
-    pass
+    """
+    create letter model
+    """
 
 
 class Letter(LetterBase):
+    """
+    read letter model
+    """
+
     id: int
 
     class Config:
+        """
+        config for model
+        """
+
         orm_mode = True

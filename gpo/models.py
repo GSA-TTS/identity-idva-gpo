@@ -1,8 +1,16 @@
+"""
+Models for GPO
+"""
+
 from sqlalchemy import Column, Integer, String
 from .database import Base
 
-
+# pylint: disable=too-few-public-methods
 class Letter(Base):
+    """
+    DB model for Letter
+    """
+
     __tablename__ = "letters"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -19,6 +27,9 @@ class Letter(Base):
     url = Column(String)
 
     def as_list(self, index: str):
+        """
+        Convert Letter to a list of feilds
+        """
         return [
             index,
             self.name,

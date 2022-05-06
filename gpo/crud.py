@@ -1,25 +1,36 @@
+"""
+CRUD operations for gpo µservice
+"""
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from . import models, schemas
 
 
-def get_letters(db: Session, skip: int = 0, limit: int = 1000):
-    return db.query(models.Letter).offset(skip).limit(limit).all()
-
-
-def delete_letters(db: Session, letters: models.Letter):
-    result = (
-        db.query(models.Letter)
-        .filter(models.Letter.id.in_(map(lambda x: x.id, letters)))
-        .delete()
+def get_letters(session: Session, skip: int = 0, limit: int = 1000) -> list[models.Letter]:
+    """
+    get letters
+    """
+    return (
+        session.execute(select(models.Letter).offset(skip).limit(limit)).scalars().all()
     )
-    db.commit()
-    return result
 
 
-def create_letter(db: Session, letter: schemas.LetterCreate):
+def delete_letters(session: Session, letters: models.Letter):
+    """
+    delete letter by id
+    """
+    map(session.delete(),letters)
+    session.commit()
+    return
+
+
+def create_letter(session: Session, letter: schemas.LetterCreate) -> models.Letter:
+    """
+    create letter
+    """
     db_item = models.Letter(**letter.dict())
-    db.add(db_item)
-    db.commit()
-    db.refresh(db_item)
+    session.add(db_item)
+    session.commit()
+    session.refresh(db_item)
     return db_item

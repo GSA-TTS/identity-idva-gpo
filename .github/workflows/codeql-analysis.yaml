@@ -12,6 +12,7 @@ on:
     paths-ignore:
       - '**.md'
   schedule:
+    # weekly run at arbitrary time
     - cron: '43 22 * * 2'
 
 jobs:
