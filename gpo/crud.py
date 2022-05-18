@@ -7,7 +7,9 @@ from sqlalchemy.orm import Session
 from . import models, schemas
 
 
-def get_letters(session: Session, skip: int = 0, limit: int = 1000) -> list[models.Letter]:
+def get_letters(
+    session: Session, skip: int = 0, limit: int = 1000
+) -> list[models.Letter]:
     """
     get letters
     """
@@ -20,7 +22,7 @@ def delete_letters(session: Session, letters: models.Letter):
     """
     delete letter by id
     """
-    map(session.delete(),letters)
+    map(session.delete(), letters)
     session.commit()
     return
 

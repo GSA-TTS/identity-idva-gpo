@@ -27,6 +27,7 @@ app.add_route("/metrics/", metrics)
 
 logging.getLogger().setLevel(settings.LOG_LEVEL)
 
+DEST_FILE_PATH = "gsa_order"
 
 def get_db():
     """
@@ -39,17 +40,39 @@ def get_db():
         db.close()
 
 
-def write(file, letters):
+def write(file: StringIO | paramiko.SFTPFile , letters: list[models.Letter]):
     """
     Write letter data to file
+
+    001|955
+    002|FAKEY MCFAKERSON|123 FAKE ST||GREAT FALLS|MT|59010|Q82GZBP71C|January 11, 2022|January 21, 2022|Example Sinatra App|https://secure.login.gov
+    003|JIMMY TESTERSON|456 FAKE RD|Apt 1|FAKE CITY|CA|40323|4WVGPG0Z5Z|January 11, 2022|January 21, 2022|Example Rails App|https://secure.login.gov
+    004|MIKE MCMOCKDATA|789 TEST AVE||FALLS CHURCH|VA|20943|5HVFT58WJ0|January 11, 2022|January 21, 2022|Example Java App|https://secure.login.gov
+    005|...
+    ...
+    956|...
+
     """
+
     writer = csv.writer(file, delimiter="|")
     numLines = len(letters) + 1
+    
+    # numIndexDigits is the number of digits in the row index
     numIndexDigits = math.trunc(math.log(numLines, 10)) + 1
+    # row index width is a least 2 and is enough to fit number of digits in the index
     width = max(2, numIndexDigits)
-    writer.writerow([f"{1:0{width}}", len(letters)])
+
+    header = [f"{1:0{width}}", len(letters)]
+    writer.writerow(header)
+
     for i, val in enumerate(letters, start=2):
-        writer.writerow(map(lambda x: x.replace("|", ""), val.as_list(f"{i:0{width}}")))
+
+        # row with index
+        row = val.as_list(f"{i:0{width}}")
+
+        # remove any pipes that might be in the data
+        sanitized_row = map(lambda x: x.replace("|", ""), row)
+        writer.writerow(sanitized_row)
 
 
 @app.post("/upload")
@@ -60,25 +83,25 @@ def upload_batch(db: Session = Depends(get_db)):
 
     letters = crud.get_letters(db)
 
-    if not settings.DEBUG:
-        with paramiko.SSHClient() as ssh:
-            key = paramiko.RSAKey(data=b64decode(settings.GPO_HOSTKEY))
-            ssh.get_host_keys().add(settings.GPO_HOST, "ssh-rsa", key)
-            ssh.connect(
+    if settings.DEBUG:
+        output = StringIO()
+        write(output, letters)
+        logging.debug(output.getvalue())
+    else:
+        with paramiko.SSHClient() as ssh_client:
+            host_key = paramiko.RSAKey(data=b64decode(settings.GPO_HOSTKEY))
+            ssh_client.get_host_keys().add(settings.GPO_HOST, "ssh-rsa", host_key)
+            ssh_client.connect(
                 settings.GPO_HOST,
                 port=settings.GPO_PORT,
                 username=settings.GPO_USERNAME,
                 password=settings.GPO_PASSWORD,
             )
-            with ssh.open_sftp() as sftp:
-                sftp.chdir("gsa_order")
+            with ssh_client.open_sftp() as sftp:
+                sftp.chdir(DEST_FILE_PATH)
                 date = datetime.date.today().strftime("%Y%m%d")
                 with sftp.open(f"idva-{date}-0.psv", mode="wx") as file:
                     write(file, letters)
-    else:
-        output = StringIO()
-        write(output, letters)
-        logging.debug(output.getvalue())
 
     crud.delete_letters(db, letters)
 

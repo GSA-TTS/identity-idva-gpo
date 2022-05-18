@@ -26,9 +26,11 @@ class Letter(Base):
     app = Column(String)
     url = Column(String)
 
-    def as_list(self, index: str):
+    def as_list(self, index: str) -> list:
         """
-        Convert Letter to a list of feilds
+        Convert Letter to a list of fields
+
+        index is a formatted line number
         """
         return [
             index,

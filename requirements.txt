@@ -1,9 +1,9 @@
-aiohttp ~= 3.8
-twisted[tls, http2]
-fastapi
-uvicorn
-pydantic
-starlette-prometheus
-paramiko
-sqlalchemy
-psycopg2
+aiohttp==3.8.1
+twisted[tls, http2]==21.7.0
+fastapi==0.71.0
+uvicorn==0.16.0
+pydantic==1.9.0
+starlette-prometheus==0.9.0
+paramiko==2.9.2
+sqlalchemy==1.4.31
+psycopg2==2.9.3
