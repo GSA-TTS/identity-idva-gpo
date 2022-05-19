@@ -8,6 +8,7 @@ import logging
 import math
 import csv
 from base64 import b64decode
+from zoneinfo import ZoneInfo
 from fastapi import FastAPI, Depends, Response
 import paramiko
 from starlette_prometheus import metrics, PrometheusMiddleware
@@ -27,7 +28,8 @@ app.add_route("/metrics/", metrics)
 
 logging.getLogger().setLevel(settings.LOG_LEVEL)
 
-DEST_FILE_PATH = "gsa_order"
+DEST_FILE_DIR = "gsa_order"
+
 
 def get_db():
     """
@@ -40,7 +42,7 @@ def get_db():
         db.close()
 
 
-def write(file: StringIO | paramiko.SFTPFile , letters: list[models.Letter]):
+def write(file: StringIO | paramiko.SFTPFile, letters: list[models.Letter]):
     """
     Write letter data to file
 
@@ -56,7 +58,7 @@ def write(file: StringIO | paramiko.SFTPFile , letters: list[models.Letter]):
 
     writer = csv.writer(file, delimiter="|")
     numLines = len(letters) + 1
-    
+
     # numIndexDigits is the number of digits in the row index
     numIndexDigits = math.trunc(math.log(numLines, 10)) + 1
     # row index width is a least 2 and is enough to fit number of digits in the index
@@ -82,30 +84,42 @@ def upload_batch(db: Session = Depends(get_db)):
     """
 
     letters = crud.get_letters(db)
+    count = len(letters)
+
+    if count == 0:
+        logging.info("No letters in db. Nothing to upload.")
+        return Response(count)
 
     if settings.DEBUG:
         output = StringIO()
         write(output, letters)
         logging.debug(output.getvalue())
-    else:
-        with paramiko.SSHClient() as ssh_client:
-            host_key = paramiko.RSAKey(data=b64decode(settings.GPO_HOSTKEY))
-            ssh_client.get_host_keys().add(settings.GPO_HOST, "ssh-rsa", host_key)
-            ssh_client.connect(
-                settings.GPO_HOST,
-                port=settings.GPO_PORT,
-                username=settings.GPO_USERNAME,
-                password=settings.GPO_PASSWORD,
-            )
-            with ssh_client.open_sftp() as sftp:
-                sftp.chdir(DEST_FILE_PATH)
-                date = datetime.date.today().strftime("%Y%m%d")
+        crud.delete_letters(db, letters)
+        return Response(count)
+
+    with paramiko.SSHClient() as ssh_client:
+        host_key = paramiko.RSAKey(data=b64decode(settings.GPO_HOSTKEY))
+        ssh_client.get_host_keys().add(settings.GPO_HOST, "ssh-rsa", host_key)
+        ssh_client.connect(
+            settings.GPO_HOST,
+            username=settings.GPO_USERNAME,
+            password=settings.GPO_PASSWORD,
+        )
+        with ssh_client.open_sftp() as sftp:
+            sftp.chdir(DEST_FILE_DIR)
+            date = datetime.datetime.now(ZoneInfo("US/Eastern")).strftime("%Y%m%d")
+            try:
                 with sftp.open(f"idva-{date}-0.psv", mode="wx") as file:
                     write(file, letters)
+            except PermissionError as err:
+                logging.error(
+                    "Error Creating file likely because it already exists: %s", err
+                )
+                return Response(status_code=500)
 
     crud.delete_letters(db, letters)
 
-    return Response()
+    return Response(count)
 
 
 @app.post("/letters", response_model=schemas.Letter)
@@ -115,3 +129,12 @@ def queue_letter(letter: schemas.LetterCreate, db: Session = Depends(get_db)):
     """
 
     return crud.create_letter(db, letter)
+
+
+@app.get("/letters")
+def count_letter(db: Session = Depends(get_db)):
+    """
+    Get count of letter in the queue
+    """
+
+    return len(crud.get_letters(db))

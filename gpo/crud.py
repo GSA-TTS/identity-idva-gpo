@@ -18,11 +18,14 @@ def get_letters(
     )
 
 
-def delete_letters(session: Session, letters: models.Letter):
+def delete_letters(session: Session, letters: list[models.Letter]):
     """
-    delete letter by id
+    delete letters by id
     """
-    map(session.delete(), letters)
+
+    for letter in letters:
+        session.delete(letter)
+
     session.commit()
     return
 
