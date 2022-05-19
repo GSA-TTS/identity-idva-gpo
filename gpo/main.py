@@ -59,7 +59,7 @@ def write(file: StringIO | paramiko.SFTPFile, letters: list[models.Letter]):
     writer = csv.writer(file, delimiter="|")
     numLines = len(letters) + 1
 
-    # numIndexDigits is the number of digits in the row index
+    # number of digits in the row index
     numIndexDigits = math.trunc(math.log(numLines, 10)) + 1
     # row index width is a least 2 and is enough to fit number of digits in the index
     width = max(2, numIndexDigits)
