@@ -7,7 +7,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.schema import CreateSchema
 from gpo import settings
 
-# Sqlalchemy the 'postgresql' as the protocol
+# Sqlalchemy requires 'postgresql' as the protocol
 uri = settings.DB_URI.replace("postgres://", "postgresql://", 1)
 
 schema_name = "gpo"
